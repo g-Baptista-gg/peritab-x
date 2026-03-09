@@ -1,6 +1,28 @@
 Screen {
+    layout: vertical;
+    padding: 0;
+}
+
+.main {
+    width: 100%;
+    height: 100%;
+    expand: optimal;
+}
+
+.grid-scroll {
+    height: 100%;
+    width: 60%;
+    min-width: 108;
+    overflow-x: auto;
+}
+
+.periodic-grid {
+    height: 100%;
+    min-width: 108;
+    min-height: 0;
     layout: grid;
-    grid-size: 18 10;
+    grid-size-columns: 18;
+    grid-size-rows: 10;
     grid-gutter: 0 0;
     padding: 0;
 
@@ -11,9 +33,23 @@ Screen {
 Element {
     text-align: center;
     margin: 0;
+    padding: 0;
     width: 100%;
     height: 100%;
+    min-width: 6;
+    max-width: 6;
+    min-height: 3;
+    box-sizing: border-box;
 }
+
+No_Element {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
 
 /* remove this if not needed */
 .box {
@@ -46,26 +82,26 @@ Element {
     background: transparent;
 }
 
-.alkali{
+.alkalimetals{
     row-span: 1;
     column-span: 1;
-    border: yellow;
-    color: yellow;
+    border: #FFD700;
+    color: #FFD700;
     background: transparent;
 }
 
-.actinides{
+.alkaliearthmetals{
     row-span: 1;
     column-span: 1;
-    border: orange;
-    color: orange;
+    border: #FF8C00;
+    color: #FF8C00;
     background:transparent;
 }
 
 .posttransmetals{
     row-span: 1;
     column-span: 1;
-    border: #FA8072;
+    border: round #FA8072;
     color: #FA8072;
     background:transparent;
 }
@@ -73,8 +109,31 @@ Element {
 .transmetals{
     row-span: 1;
     column-span: 1;
-    border: #FF6347;
-    color: #FF6347;
+    border: solid #FF4500;
+    color: #FF4500;
+    background:transparent;
+}
+
+.unknown{
+    row-span: 1;
+    column-span: 1;
+    border: solid #708090;
+    color: #708090;
+    background:transparent;
+}
+
+
+.group_lanthanoids{
+    row-span: 1;
+    column-span: 1;
+    border: solid #F4A460;
+    background:transparent;
+}
+
+.group_actinoids{
+    row-span: 1;
+    column-span: 1;
+    border: solid #DEB887;
     background:transparent;
 }
 
@@ -82,4 +141,17 @@ Element {
     tint: red 40%;
     row-span: 1;
     column-span: 1;
+}
+
+/* right-hand info panel */
+.info {
+    width: 40%;
+    height: 100%;
+    min-width: 30;
+    expand: optimal;
+    border: solid green;
+    padding: 1 1;
+    text-align: left;
+    background: #22222244;
+    overflow: auto;
 }
