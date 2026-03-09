@@ -87,9 +87,13 @@ class PeriodicTable(App):
             # x_data = [min_energy, (min_energy + max_energy) / 2, max_energy]
             x_data = np.linspace(min_energy, max_energy, 100) * 1000
             try:
-                y_data = 1 / (
-                    xraydb.mu_elam(self._chosen_element, x_data, kind="total")
-                    * xraydb.atomic_density(self._chosen_element)
+                y_data = (
+                    1
+                    / (
+                        xraydb.mu_elam(self._chosen_element, x_data, kind="total")
+                        * xraydb.atomic_density(self._chosen_element)
+                    )
+                    * 10000
                 )
             except Exception as e:
                 y_data = np.zeros_like(x_data)
@@ -99,11 +103,11 @@ class PeriodicTable(App):
                 x_data / 1000, y_data, marker="braille", color="white"
             )
             self.plotting_widget.plt.xlabel("Energy (keV)")
-            self.plotting_widget.plt.ylabel(r"Attenuation length (cm)")
+            # self.plotting_widget.plt.ylabel(r"Attenuation length (cm)")
             # self.plotting_widget.plt.xscale("log")
             # self.plotting_widget.plt.xscale("log")
             self.plotting_widget.plt.title(
-                f"Attenuation Coefficient for {self._chosen_element} (Total)"
+                f"Attenuation length for {self._chosen_element} [um]"
             )
 
             self.plotting_widget.plt.xlim(min_energy, max_energy)
@@ -283,7 +287,7 @@ class PeriodicTable(App):
                     # Initialize with some basic data to avoid issues
 
                     self.plotting_widget.plt.xlabel("Energy (keV)")
-                    self.plotting_widget.plt.ylabel(r"Attenuation length (cm)")
+                    # self.plotting_widget.plt.ylabel(r"Attenuation length (cm)")
 
                     yield self.plotting_widget
 
