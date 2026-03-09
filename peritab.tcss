@@ -7,6 +7,7 @@ Screen {
     width: 100%;
     height: 100%;
     expand: optimal;
+    layout: horizontal;
 }
 
 .grid-scroll {
@@ -17,12 +18,10 @@ Screen {
 }
 
 .periodic-grid {
-    height: 100%;
-    min-width: 108;
-    min-height: 0;
+    height: 60%; /* Let it size based on content */
     layout: grid;
     grid-size-columns: 18;
-    grid-size-rows: 10;
+    grid-size-rows: 9;
     grid-gutter: 0 0;
     padding: 0;
 
@@ -36,9 +35,6 @@ Element {
     padding: 0;
     width: 100%;
     height: 100%;
-    min-width: 6;
-    max-width: 6;
-    min-height: 3;
     box-sizing: border-box;
 }
 
@@ -154,4 +150,62 @@ No_Element {
     text-align: left;
     background: #22222244;
     overflow: auto;
+}
+
+/* table section containing periodic table and plotting widget */
+.table-section {
+    width: 60%;
+    height: 100%;
+    layout: vertical;
+    overflow-y: auto; /* Allow scrolling if needed */
+}
+
+/* plotting widget below the periodic table */
+.plotting {
+    height: 40%;
+    min-height: 20;
+    border: solid blue;
+    padding: 1 1;
+    background: #44444444;
+    text-align: center;
+}
+
+/* plot area containing plot and controls */
+.plot-area {
+    height: 30%; /* Size to content */
+    min-height: 25; /* Minimum height for plot */
+    width: 100%;
+}
+
+/* plot controls panel */
+.plot-controls {
+    width: 30;
+    min-width: 25;
+    height: 20; /* Same height as plotting widget */
+    border: solid green;
+    padding: 1 1;
+    margin-left: 1;
+    background: #33333344;
+}
+
+.control-label {
+    text-align: center;
+    margin-bottom: 1;
+    color: $text-primary;
+}
+
+.input-label {
+    margin-top: 1;
+    margin-bottom: 0;
+    color: $text-secondary;
+}
+
+.energy-input {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+.update-btn {
+    width: 100%;
+    margin-top: 1;
 }

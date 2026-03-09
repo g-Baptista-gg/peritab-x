@@ -1,14 +1,46 @@
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, HorizontalScroll, Grid
-from textual.widgets import Button, Digits, Footer, Header, Static
+from textual.containers import Horizontal, HorizontalScroll, Grid, Vertical
+from textual.widgets import (
+    Button,
+    Digits,
+    Footer,
+    Header,
+    Static,
+    MarkdownViewer,
+    Input,
+    Label,
+)
 from textual.css.scalar import Scalar
 from textual.reactive import reactive
+from textual_plotext import PlotextPlot
+import numpy as np
+
+import xraydb
+
+xdb = xraydb.get_xraydb()
+
+
+def xray_lines_to_markdown(lines_dict: dict) -> str:
+    """Convert X-ray lines dictionary to markdown table format."""
+    if not lines_dict:
+        return "No X-ray lines data available"
+
+    table = "# X ray lines\n\n"
+    table += "| Line | Energy (keV) | Intensity | Initial Level | Final Level |\n"
+    table += "|------|-------------|-----------|----------------|-------------|\n"
+
+    for line_name, line_data in lines_dict.items():
+        table += f"| {line_name} | {line_data.energy:.1f} | {line_data.intensity:.6g} | {line_data.initial_level} | {line_data.final_level} |\n"
+
+    return table
 
 
 # simple element widget
 class Element(Button):
     def __init__(self, atomic_number: int, symbol: str, group: str):
-        super().__init__(f"[dim]{atomic_number}[/dim]\n[bold]{symbol}[/bold]")
+        super().__init__(
+            f"[dim]{atomic_number}[/dim]\n[bold]{symbol}[/bold]", id=symbol
+        )
         try:
             self.add_class(group)
         except:
@@ -30,6 +62,56 @@ class PeriodicTable(App):
     CSS_PATH = "peritab.tcss"
 
     BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit_app", "Quit App")]
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "update-plot":
+            self.update_plot_from_inputs()
+        else:
+            # Handle element clicks
+            self._chosen_element = event.button.id
+            symbol = self._chosen_element
+
+            xray_lines = xdb.xray_lines(symbol)
+            table = xray_lines_to_markdown(xray_lines)
+
+            md_content = f"# {xraydb.atomic_name(symbol).title()}\n\n"
+            md_content += f"#{table}"
+            self.md.document.update(md_content)
+
+    def update_plot_from_inputs(self) -> None:
+        """Update the plot based on the energy range inputs."""
+        try:
+            min_energy = float(self.min_energy_input.value)
+            max_energy = float(self.max_energy_input.value)
+
+            # x_data = [min_energy, (min_energy + max_energy) / 2, max_energy]
+            x_data = np.linspace(min_energy, max_energy, 100) * 1000
+            try:
+                y_data = 1 / (
+                    xraydb.mu_elam(self._chosen_element, x_data, kind="total")
+                    * xraydb.atomic_density(self._chosen_element)
+                )
+            except Exception as e:
+                y_data = np.zeros_like(x_data)
+
+            self.plotting_widget.plt.clf()
+            self.plotting_widget.plt.plot(
+                x_data / 1000, y_data, marker="braille", color="white"
+            )
+            self.plotting_widget.plt.xlabel("Energy (keV)")
+            self.plotting_widget.plt.ylabel(r"Attenuation length (cm)")
+            # self.plotting_widget.plt.xscale("log")
+            # self.plotting_widget.plt.xscale("log")
+            self.plotting_widget.plt.title(
+                f"Attenuation Coefficient for {self._chosen_element} (Total)"
+            )
+
+            self.plotting_widget.plt.xlim(min_energy, max_energy)
+            self.plotting_widget.refresh()
+
+        except ValueError:
+            self.plotting_widget.plt.clf()
+            self.plotting_widget.plt.text("Invalid energy range")
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -179,13 +261,8 @@ class PeriodicTable(App):
         ]
 
         with Horizontal(classes="main"):
-            with HorizontalScroll(classes="grid-scroll"):
-                grid = Grid(classes="periodic-grid")
-                grid.styles.grid_size_columns = 18
-                grid.styles.grid_size_rows = 10
-                grid.styles.grid_gutter_horizontal = 0
-                grid.styles.grid_gutter_vertical = 0
-                grid.styles.grid_rows = tuple(Scalar.parse("1fr") for _ in range(10))
+            with Vertical(classes="table-section"):
+                grid: Grid = Grid(classes="periodic-grid")
 
                 with grid:
                     for row in elements:
@@ -199,13 +276,51 @@ class PeriodicTable(App):
                                 else:
                                     yield Element(at_no, symbol, group)
 
-            # right-hand info panel (placeholder for selected element details)
-            self.info = Static(
-                "[b]Selected element info will appear here.[/b]\n\n"
-                "(Click an element to update this panel.)",
-                classes="info",
-            )
-            yield self.info
+                # plotting area with controls
+                with Horizontal(classes="plot-area"):
+                    # plotting widget on the left
+                    self.plotting_widget = PlotextPlot(classes="plotting")
+                    # Initialize with some basic data to avoid issues
+
+                    self.plotting_widget.plt.xlabel("Energy (keV)")
+                    self.plotting_widget.plt.ylabel(r"Attenuation length (cm)")
+
+                    yield self.plotting_widget
+
+                    # input controls on the right
+                    with Vertical(classes="plot-controls"):
+                        yield Label("Energy Range (keV)", classes="control-label")
+
+                        # Min energy input
+                        yield Label("Min Energy:", classes="input-label")
+                        self.min_energy_input = Input(
+                            placeholder="0.0", value="0.0", classes="energy-input"
+                        )
+                        yield self.min_energy_input
+
+                        # Max energy input
+                        yield Label("Max Energy:", classes="input-label")
+                        self.max_energy_input = Input(
+                            placeholder="20.0", value="20.0", classes="energy-input"
+                        )
+                        yield self.max_energy_input
+
+                        # Update plot button
+                        self.update_plot_btn = Button(
+                            "Update Plot", id="update-plot", classes="update-btn"
+                        )
+                        yield self.update_plot_btn
+
+            # right-hand info panel (container for selected element details)
+            # Using a scrollable container so we can add multiple widgets later
+            from textual.containers import VerticalScroll
+
+            self.info_panel = VerticalScroll(classes="info")
+            # main markdown viewer inside the panel
+            self.md = MarkdownViewer("`Click an element to update this panel.`")
+            with self.info_panel:
+                yield self.md
+            yield self.info_panel
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
