@@ -1,0 +1,85 @@
+Screen {
+    layout: grid;
+    grid-size: 18 10;
+    grid-gutter: 0 0;
+    padding: 0;
+
+    /* force rows to be identical */
+    grid-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+}
+
+Element {
+    text-align: center;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* remove this if not needed */
+.box {
+    height: 100%;
+}
+
+/* categories */
+
+.nobles{
+    row-span: 1;
+    column-span: 1;
+    border: solid magenta;
+    color: magenta;
+    background: transparent;
+}
+
+.metalloids{
+    row-span: 1;
+    column-span: 1;
+    border: #48D1CC;
+    color: #48D1CC;
+    background: transparent;
+}
+
+.nonmetals{
+    row-span: 1;
+    column-span: 1;
+    border: #8FBC8F;
+    color: #8FBC8F;
+    background: transparent;
+}
+
+.alkali{
+    row-span: 1;
+    column-span: 1;
+    border: yellow;
+    color: yellow;
+    background: transparent;
+}
+
+.actinides{
+    row-span: 1;
+    column-span: 1;
+    border: orange;
+    color: orange;
+    background:transparent;
+}
+
+.posttransmetals{
+    row-span: 1;
+    column-span: 1;
+    border: #FA8072;
+    color: #FA8072;
+    background:transparent;
+}
+
+.transmetals{
+    row-span: 1;
+    column-span: 1;
+    border: #FF6347;
+    color: #FF6347;
+    background:transparent;
+}
+
+.ERROR{
+    tint: red 40%;
+    row-span: 1;
+    column-span: 1;
+}
