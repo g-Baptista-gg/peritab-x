@@ -6,27 +6,22 @@ Screen {
 .main {
     width: 100%;
     height: 100%;
-    expand: optimal;
     layout: horizontal;
 }
 
-.grid-scroll {
-    height: 100%;
-    width: 60%;
-    min-width: 108;
-    overflow-x: auto;
-}
-
 .periodic-grid {
-    height: 60%; /* Let it size based on content */
+    /* Use 1fr so it fills available vertical space rather than a fixed 60%
+       which collapses cells on smaller terminals. */
+    height: 1fr;
     layout: grid;
     grid-size-columns: 18;
-    grid-size-rows: 9;
+    grid-size-rows: 7;
     grid-gutter: 0 0;
     padding: 0;
-
-    /* force rows to be identical */
-    grid-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    /* 7 fractions — one per data row (was 10, mismatched grid-size-rows: 9) */
+    grid-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    /* Never let the grid collapse so small that cell text vanishes */
+    min-height: 14;
 }
 
 Element {
@@ -35,26 +30,25 @@ Element {
     padding: 0;
     width: 100%;
     height: 100%;
+    /* Single-line label (atomic number + symbol on one line) only needs
+       2 rows minimum: 1 for the border + 1 for the text. */
+    min-height: 2;
+    overflow: hidden;
     box-sizing: border-box;
 }
 
-No_Element {
+NoElement {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
+    min-height: 2;
     box-sizing: border-box;
-}
-
-
-/* remove this if not needed */
-.box {
-    height: 100%;
 }
 
 /* categories */
 
-.nobles{
+.nobles {
     row-span: 1;
     column-span: 1;
     border: solid magenta;
@@ -62,78 +56,83 @@ No_Element {
     background: transparent;
 }
 
-.metalloids{
+.metalloids {
     row-span: 1;
     column-span: 1;
-    border: #48D1CC;
+    border: solid #48D1CC;
     color: #48D1CC;
     background: transparent;
 }
 
-.nonmetals{
+.nonmetals {
     row-span: 1;
     column-span: 1;
-    border: #8FBC8F;
+    border: solid #8FBC8F;
     color: #8FBC8F;
     background: transparent;
 }
 
-.alkalimetals{
+.alkalimetals {
     row-span: 1;
     column-span: 1;
-    border: #FFD700;
+    border: solid #FFD700;
     color: #FFD700;
     background: transparent;
 }
 
-.alkaliearthmetals{
+.alkaliearthmetals {
     row-span: 1;
     column-span: 1;
-    border: #FF8C00;
+    border: solid #FF8C00;
     color: #FF8C00;
-    background:transparent;
+    background: transparent;
 }
 
-.posttransmetals{
+.posttransmetals {
     row-span: 1;
     column-span: 1;
     border: round #FA8072;
     color: #FA8072;
-    background:transparent;
+    background: transparent;
 }
 
-.transmetals{
+.transmetals {
     row-span: 1;
     column-span: 1;
     border: solid #FF4500;
     color: #FF4500;
-    background:transparent;
+    background: transparent;
 }
 
-.unknown{
+.unknown {
     row-span: 1;
     column-span: 1;
     border: solid #708090;
     color: #708090;
-    background:transparent;
+    background: transparent;
 }
 
-
-.group_lanthanoids{
+.group_lanthanoids {
     row-span: 1;
     column-span: 1;
     border: solid #F4A460;
-    background:transparent;
+    background: transparent;
 }
 
-.group_actinoids{
+.group_actinoids {
     row-span: 1;
     column-span: 1;
     border: solid #DEB887;
-    background:transparent;
+    background: transparent;
 }
 
-.ERROR{
+.empty {
+    row-span: 1;
+    column-span: 1;
+    background: transparent;
+}
+
+.ERROR {
     tint: red 40%;
     row-span: 1;
     column-span: 1;
@@ -144,7 +143,6 @@ No_Element {
     width: 40%;
     height: 100%;
     min-width: 30;
-    expand: optimal;
     border: solid green;
     padding: 1 1;
     text-align: left;
@@ -157,12 +155,22 @@ No_Element {
     width: 60%;
     height: 100%;
     layout: vertical;
-    overflow-y: auto; /* Allow scrolling if needed */
+    /* Allow both axes to scroll on very small terminals */
+    overflow: auto;
+    min-width: 40;
 }
 
-/* plotting widget below the periodic table */
+/* plot area containing plot and controls */
+.plot-area {
+    /* Fixed height so it doesn't steal space from the grid */
+    height: 25;
+    min-height: 20;
+    width: 100%;
+}
+
+/* plotting widget */
 .plotting {
-    height: 40%;
+    height: 100%;
     min-height: 20;
     border: solid blue;
     padding: 1 1;
@@ -170,18 +178,12 @@ No_Element {
     text-align: center;
 }
 
-/* plot area containing plot and controls */
-.plot-area {
-    height: 30%; /* Size to content */
-    min-height: 25; /* Minimum height for plot */
-    width: 100%;
-}
-
 /* plot controls panel */
 .plot-controls {
     width: 30;
     min-width: 25;
-    height: 20; /* Same height as plotting widget */
+    /* Match the plot area height instead of a hardcoded 20 */
+    height: 100%;
     border: solid green;
     padding: 1 1;
     margin-left: 1;
