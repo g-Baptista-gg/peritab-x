@@ -1,34 +1,34 @@
 Screen {
     layout: vertical;
-    padding: 0;
+    height: 100%;
+    width: 100%;
 }
 
 /* ── top-level split: table+plot on left, info panel on right ── */
 .main {
     width: 100%;
-    height: 100%;
-    layout: horizontal;
+    height: 1fr;
 }
 
 /* ── left column ── */
 .table-section {
-    width: 65%;
+    width: 2fr;
     height: 100%;
     layout: vertical;
     overflow: auto;
     min-width: 36;
 }
 
-/* ── periodic grid: always 7 rows, scales with available height ── */
+/* ── periodic grid: always 9 rows, scales with available height ── */
 .periodic-grid {
-    height: 2fr;          /* takes 2/3 of the left column */
+    height: 36;          /* takes 2/3 of the left column */
     layout: grid;
     grid-size-columns: 18;
-    grid-size-rows: 7;
+    grid-size-rows: 9;
     grid-gutter: 0 0;
     padding: 0;
-    grid-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-    min-height: 7;        /* 1 terminal row per element row absolute minimum */
+    grid-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-columns: 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7;
 }
 
 /* ── element buttons ── */
@@ -37,7 +37,7 @@ Element {
     margin: 0;
     padding: 0;
     width: 5;
-    height: 1fr;
+    height: 4;
     box-sizing: border-box;
 }
 
@@ -45,14 +45,14 @@ NoElement {
     margin: 0;
     padding: 0;
     width: 1fr;
-    height: 5;
+    height: 4;
     box-sizing: border-box;
 }
 
 /* ── plot row: 1fr so it takes the remaining left-column space ── */
 .plot-area {
     height: 1fr;
-    min-height: 8;
+    height: 16;
     width: 100%;
     layout: horizontal;
 }
@@ -92,7 +92,7 @@ NoElement {
 
 /* ── right panel ── */
 TabbedContent.info {
-    width: 35%;
+    width: 1fr;
     height: 100%;
     min-width: 28;
     border: solid green;
@@ -154,7 +154,11 @@ MarkdownViewer {
 .alkaliearthmetals{ border: round #FF8C00;  color: #FF8C00;  background: transparent; }
 .posttransmetals  { border: round #FA8072;  color: #FA8072;  background: transparent; }
 .transmetals      { border: round #FF4500;  color: #FF4500;  background: transparent; }
+.lanthanoids      { border: round #F4A460;  color: #F4A460;  background: transparent; }
+.actinoids        { border: round #DEB887;  color: #DEB887;background: transparent; }
 .unknown          { border: round #708090;  color: #708090;  background: transparent; }
+
+
 .group_lanthanoids{ border: round #F4A460;  background: transparent; }
 .group_actinoids  { border: round #DEB887;  background: transparent; }
 .empty            { background: transparent; }
