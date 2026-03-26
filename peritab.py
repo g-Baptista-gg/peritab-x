@@ -3,17 +3,124 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
     Button,
+    Checkbox,
+    DataTable,
     Footer,
     Header,
     Static,
     MarkdownViewer,
     Input,
     Label,
+    TabbedContent,
+    TabPane,
 )
 from textual_plotext import PlotextPlot
 import numpy as np
 
 import xraydb
+
+# All elements with valid xraydb data (Z=1..92)
+ALL_SYMBOLS = [
+    "H",
+    "He",
+    "Li",
+    "Be",
+    "B",
+    "C",
+    "N",
+    "O",
+    "F",
+    "Ne",
+    "Na",
+    "Mg",
+    "Al",
+    "Si",
+    "P",
+    "S",
+    "Cl",
+    "Ar",
+    "K",
+    "Ca",
+    "Sc",
+    "Ti",
+    "V",
+    "Cr",
+    "Mn",
+    "Fe",
+    "Co",
+    "Ni",
+    "Cu",
+    "Zn",
+    "Ga",
+    "Ge",
+    "As",
+    "Se",
+    "Br",
+    "Kr",
+    "Rb",
+    "Sr",
+    "Y",
+    "Zr",
+    "Nb",
+    "Mo",
+    "Tc",
+    "Ru",
+    "Rh",
+    "Pd",
+    "Ag",
+    "Cd",
+    "In",
+    "Sn",
+    "Sb",
+    "Te",
+    "I",
+    "Xe",
+    "Cs",
+    "Ba",
+    "La",
+    "Ce",
+    "Pr",
+    "Nd",
+    "Pm",
+    "Sm",
+    "Eu",
+    "Gd",
+    "Tb",
+    "Dy",
+    "Ho",
+    "Er",
+    "Tm",
+    "Yb",
+    "Lu",
+    "Hf",
+    "Ta",
+    "W",
+    "Re",
+    "Os",
+    "Ir",
+    "Pt",
+    "Au",
+    "Hg",
+    "Tl",
+    "Pb",
+    "Bi",
+    "Po",
+    "At",
+    "Rn",
+    "Fr",
+    "Ra",
+    "Ac",
+    "Th",
+    "Pa",
+    "U",
+]
+
+# Line families: label -> initial_level arg for xray_lines()
+LINE_FAMILIES = {
+    "K": "K",
+    "L": "L",
+    "M": "M",
+}
 
 
 def xray_lines_to_markdown(lines_dict: dict) -> str:
@@ -32,11 +139,7 @@ def xray_lines_to_markdown(lines_dict: dict) -> str:
 
 
 def xray_edges_to_markdown(edges_dict: dict) -> str:
-    """Convert X-ray edges dictionary to markdown table format.
-
-    edges_dict maps edge name (str) -> XrayEdge(edge, fyield, jump_ratio)
-    where edge energy is in eV.
-    """
+    """Convert X-ray edges dictionary to markdown table format."""
     if not edges_dict:
         return "No X-ray edges data available"
 
@@ -57,7 +160,9 @@ def xray_edges_to_markdown(edges_dict: dict) -> str:
 
 class Element(Button):
     def __init__(self, atomic_number: int, symbol: str, group: str):
-        super().__init__(f"[dim]{atomic_number}[/dim] [bold]{symbol}[/bold]", id=symbol)
+        super().__init__(
+            f"[dim]{atomic_number}[/dim]\n[bold]{symbol}[/bold]", id=symbol
+        )
         try:
             self.add_class(group)
         except Exception:
@@ -76,8 +181,11 @@ class PeriodicTable(App):
 
     BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit_app", "Quit App")]
 
-    # Default element so the plot works before the user clicks anything
     _chosen_element: str = "Fe"
+
+    # ------------------------------------------------------------------ #
+    #  Element click / info panel                                          #
+    # ------------------------------------------------------------------ #
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle element button clicks — update info panel and plot."""
@@ -88,11 +196,13 @@ class PeriodicTable(App):
         edges_md = xray_edges_to_markdown(xraydb.xray_edges(symbol))
 
         md_content = f"# {xraydb.atomic_name(symbol).title()}\n\n"
-        md_content += lines_md
-        md_content += "\n\n"
-        md_content += edges_md
+        md_content += lines_md + "\n\n" + edges_md
         self.md.document.update(md_content)
         self.update_plot_from_inputs()
+
+    # ------------------------------------------------------------------ #
+    #  Attenuation plot                                                    #
+    # ------------------------------------------------------------------ #
 
     @on(Input.Changed, ".energy-input")
     def on_energy_changed(self) -> None:
@@ -137,8 +247,80 @@ class PeriodicTable(App):
             self.plotting_widget.refresh()
 
         except ValueError:
-            # User is mid-typing — silently skip rather than spamming notifications
             pass
+
+    # ------------------------------------------------------------------ #
+    #  Line search tool                                                    #
+    # ------------------------------------------------------------------ #
+
+    @on(Input.Changed, ".search-energy-input")
+    def on_search_input_changed(self) -> None:
+        """Rerun the line search when energy range inputs change."""
+        self.update_line_search()
+
+    @on(Checkbox.Changed)
+    def on_search_checkbox_changed(self) -> None:
+        """Rerun the line search when a family checkbox is toggled."""
+        self.update_line_search()
+
+    def update_line_search(self) -> None:
+        """Search all elements for lines within the energy range and families."""
+        try:
+            min_ev = float(self.search_min_input.value) * 1000
+            max_ev = float(self.search_max_input.value) * 1000
+        except ValueError:
+            return
+
+        if min_ev >= max_ev:
+            return
+
+        # Which families are toggled on?
+        active_families = [
+            fam for fam, cb in self._family_checkboxes.items() if cb.value
+        ]
+        if not active_families:
+            self.line_table.clear()
+            return
+
+        results = []
+        for symbol in ALL_SYMBOLS:
+            try:
+                lines = xraydb.xray_lines(symbol)
+            except Exception:
+                continue
+            for line_name, line_data in lines.items():
+                if (
+                    min_ev <= line_data.energy <= max_ev
+                    and line_name[0] in active_families
+                ):
+                    results.append(
+                        (
+                            symbol,
+                            line_name,
+                            line_data.energy / 1000,
+                            line_data.intensity,
+                            line_data.initial_level,
+                            line_data.final_level,
+                        )
+                    )
+
+        # Sort by energy
+        results.sort(key=lambda r: r[2])
+
+        self.line_table.clear()
+        for symbol, line_name, energy_kev, intensity, initial, final in results:
+            self.line_table.add_row(
+                symbol,
+                line_name,
+                f"{energy_kev:.3f}",
+                f"{intensity:.4g}",
+                initial,
+                final,
+            )
+
+    # ------------------------------------------------------------------ #
+    #  Layout                                                              #
+    # ------------------------------------------------------------------ #
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -311,28 +493,60 @@ class PeriodicTable(App):
                     yield self.plotting_widget
 
                     with Vertical(classes="plot-controls"):
-                        yield Label("Energy Range (keV)", classes="control-label")
-
-                        yield Label("Min Energy:", classes="input-label")
+                        yield Label("En. range", classes="control-label")
+                        yield Label("Min:", classes="input-label")
                         self.min_energy_input = Input(
-                            placeholder="0.0", value="0.0", classes="energy-input"
+                            value="0.0", placeholder="0.0", classes="energy-input"
                         )
                         yield self.min_energy_input
-
-                        yield Label("Max Energy:", classes="input-label")
+                        yield Label("Max:", classes="input-label")
                         self.max_energy_input = Input(
-                            placeholder="20.0", value="20.0", classes="energy-input"
+                            value="20.0", placeholder="0.0", classes="energy-input"
                         )
                         yield self.max_energy_input
 
-            self.info_panel = VerticalScroll(classes="info")
-            self.md = MarkdownViewer("`Click an element to update this panel.`")
-            with self.info_panel:
-                yield self.md
-            yield self.info_panel
+            # Right panel: tabbed between element info and line search
+            with TabbedContent(classes="info"):
+                with TabPane("Element", id="tab-element"):
+                    self.info_panel = VerticalScroll()
+                    self.md = MarkdownViewer("`Click an element to update this panel.`")
+                    with self.info_panel:
+                        yield self.md
+                    yield self.info_panel
+
+                with TabPane("Line Search", id="tab-search"):
+                    yield Label("Min (keV):", classes="search-label")
+                    self.search_min_input = Input(
+                        placeholder="0.0", value="0.0", classes="search-energy-input"
+                    )
+                    yield self.search_min_input
+                    yield Label("Max (keV):", classes="search-label")
+                    self.search_max_input = Input(
+                        placeholder="20.0", value="20.0", classes="search-energy-input"
+                    )
+                    yield self.search_max_input
+                    yield Label("Families:", classes="search-label")
+                    self._family_checkboxes: dict[str, Checkbox] = {}
+                    for fam in LINE_FAMILIES:
+                        cb = Checkbox(fam, value=True, classes="family-cb")
+                        self._family_checkboxes[fam] = cb
+                        yield cb
+                    self.line_table = DataTable(classes="line-search-table")
+                    self.line_table.add_columns(
+                        "Element",
+                        "Line",
+                        "Energy (keV)",
+                        "Intensity",
+                        "Initial",
+                        "Final",
+                    )
+                    yield self.line_table
+
+    def on_mount(self) -> None:
+        """Populate the line search table with default range on startup."""
+        self.update_line_search()
 
     def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
         self.theme = (
             "textual-dark" if self.theme == "textual-light" else "textual-light"
         )
@@ -344,4 +558,3 @@ class PeriodicTable(App):
 if __name__ == "__main__":
     app = PeriodicTable()
     app.run()
-q
